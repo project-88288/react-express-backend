@@ -27,7 +27,8 @@ services:
       - public
       - private
     depends_on:
-      - db
+      - db:
+        condition: service_healthy
   db:
     # We use a mariadb image which supports both amd64 & arm64 architecture
     #image: mariadb:10.6.4-focal
@@ -35,11 +36,17 @@ services:
     image: mysql:8.0.27
     command: '--default-authentication-plugin=mysql_native_password'
     restart: always
+    healthcheck:
+      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 --password="$$(cat /run/secrets/db-password)" --silent']
+      interval: 3s
+      retries: 5
+      start_period: 30s
     secrets:
       - db-password
     volumes:
       - db-data:/var/lib/mysql
     networks:
+      - public
       - private
     environment:
       - MYSQL_DATABASE=example
